@@ -157,7 +157,7 @@ function pmgit_add_to_index_interactive
 	cd $repo
 	if [ ! -e ${dotpmgit}/index/$rpath ]
 	then
-		echo "Can't 'add -p' and untracked file."
+		echo "Can't 'add -p' an untracked file."
 		exit;
 	fi
 	d=$(diff -q $rpath ${dotpmgit}/index/$rpath)
@@ -179,9 +179,15 @@ function pmgit_find_parent_commit
 {
 	commit_hash=$1
 	num=$2
+	if [ "$3" = "" ]
+	then
+		rdotpmgit=$dotpmgit
+	else
+		rdotpmgit=$3
+	fi
 	for i in $(seq 1 $num)
 	do
-		commit_hash=$(grep "parent" ${dotpmgit}/objects/commits/${commit_hash} | awk '{print $2}')
+		commit_hash=$(grep "parent" ${rdotpmgit}/objects/commits/${commit_hash} | awk '{print $2}')
 	done
 	echo $commit_hash
 }
@@ -212,11 +218,11 @@ function pmgit_tell_me_the_commit_hash
 		elif [ "${string:4:1}" = "^" ]
 		then
 			nc=$(expr "${string:4}" : '\^*')
-			echo $(pmgit_find_parent_commit ${head_hash} $nc)
+			echo $(pmgit_find_parent_commit ${head_hash} $nc $rdotpmgit)
 		elif [ "${string:4:1}" = "~" ]
 		then
 			nc=${string:5}
-			echo $(pmgit_find_parent_commit ${head_hash} $nc)
+			echo $(pmgit_find_parent_commit ${head_hash} $nc $rdotpmgit)
 		else
 			echo -1
 		fi
@@ -327,7 +333,7 @@ function pmgit_status
 	echo "$NORMAL"
 	echo "untracked files:"
 	diff -qr -x .pmgit ${dotpmgit}/index/ ./ | grep "Only in \./" | awk '{print "    " $4}'
-	cd - > /dev/null
+	cd - &> /dev/null
 }
 
 
@@ -542,22 +548,22 @@ function pmgit_cherrypick
 	if [[ "$1" =~ ":" ]]
 	then
 		remote=${1%:*}
-		dotpm=$(head ${dotpmgit}/remotes/${remote})
+		rdotpmgit=$(head ${dotpmgit}/remotes/${remote})
 		ref=${1#*:}
 	else
 		remote=""
-		dotpm=${dotpmgit}
+		rdotpmgit=${dotpmgit}
 		ref="$1"
 	fi
 
 	# get the parent of the cherry
-	cherry_commit_hash=$(pmgit_tell_me_the_commit_hash $@)
-	parent_commit_hash=$(pmgit_find_parent_commit ${cherry_commit_hash})
+	cherry_commit_hash=$(pmgit_tell_me_the_commit_hash $1)
+	parent_commit_hash=$(pmgit_find_parent_commit ${cherry_commit_hash} $rdotpmgit)
 
 	# expand all three commits, so we can diff & merge
 	head_dir=$(pmgit_expand_to_dir HEAD tree1)
-	cherry_dir=$(pmgit_expand_to_dir ${cherry_commit_hash} tree2)
-	parent_dir=$(pmgit_expand_to_dir ${parent_commit_hash} tree3)
+	cherry_dir=$(pmgit_expand_to_dir ${remote}:${cherry_commit_hash} tree2)
+	parent_dir=$(pmgit_expand_to_dir ${remote}:${parent_commit_hash} tree3)
 
 	# check if index clean
 	a1=$(diff -qr ${dotpmgit}/index ${head_dir} | grep "Only in" | wc -l)
@@ -625,7 +631,7 @@ function pmgit_cherrypick
 	fi
 
 	echo "Message hash is:"
-	grep "message" ${dotpmgit}/objects/commits/${cherry_commit_hash} | awk '{print $2}'
+	grep "message" ${rdotpmgit}/objects/commits/${cherry_commit_hash} | awk '{print $2}'
 }
 
 
