@@ -390,7 +390,11 @@ function pmgit_graph
 	for ref in ${dotpmgit}/HEAD ${dotpmgit}/branches/* ${dotpmgit}/tags/*
 	do
 		i=$((i+1))
-		echo $i = $(basename $ref)
+		rn=$(basename $ref)
+		if [ "$rn" != "*" ]
+		then
+			echo $i = $(basename $ref)
+		fi
 		#echo "${commits[i]}"
 		j=0
 		for commit in ${allcommits}
