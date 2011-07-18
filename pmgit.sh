@@ -27,10 +27,14 @@ function pmgit_init
 		mkdir -p ${dotpmgit}/junk
 		mkdir -p ${dotpmgit}/tags
 		mkdir -p ${dotpmgit}/branches
+		mkdir -p ${dotpmgit}/config
 		touch ${dotpmgit}/HEAD
 		touch ${dotpmgit}/branches/master
 		touch ${dotpmgit}/BRANCH
+		touch ${dotpmgit}/config/whoami
 		echo "master" > ${dotpmgit}/BRANCH
+		echo "$(whoami)@$(hostname)" > ${dotpmgit}/config/whoami
+		echo "remember to set your name and email in .pmgit/config/whoami"
 	fi
 }
 
@@ -82,6 +86,7 @@ function pmgit_hash_commit
 	msg_hash=$2
 	parent_hash=$(cat ${dotpmgit}/HEAD)
 	date > ${dotpmgit}/junk/commit.txt
+	cat ${dotpmgit}/config/whoami >> ${dotpmgit}/junk/commit.txt
 	echo "tree ${tree_hash}" >> ${dotpmgit}/junk/commit.txt
 	echo "message ${msg_hash}" >> ${dotpmgit}/junk/commit.txt
 	echo "parent ${parent_hash}" >> ${dotpmgit}/junk/commit.txt
@@ -314,7 +319,7 @@ function pmgit_log
 		echo -n "$YELLOW"
 		echo -n "commit ${commit_hash}"
 		echo "$NORMAL"
-		head -1 ${dotpmgit}/objects/commits/${commit_hash}
+		head -2 ${dotpmgit}/objects/commits/${commit_hash}
 		echo ""
 		message_hash=$(grep message ${dotpmgit}/objects/commits/${commit_hash} | awk '{print $2}')
 		cat ${dotpmgit}/objects/messages/${message_hash}
