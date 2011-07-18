@@ -28,6 +28,7 @@ function pmgit_init
 		mkdir -p ${dotpmgit}/tags
 		mkdir -p ${dotpmgit}/branches
 		mkdir -p ${dotpmgit}/config
+		mkdir -p ${dotpmgit}/remotes
 		touch ${dotpmgit}/HEAD
 		touch ${dotpmgit}/branches/master
 		touch ${dotpmgit}/BRANCH
@@ -191,10 +192,20 @@ function pmgit_find_parent_commit
 # return the full hash
 function pmgit_tell_me_the_commit_hash
 {
-	string=$1
+	if [[ "$1" =~ ":" ]]
+	then
+		remote=${1%:*}
+		rdotpmgit=$(head ${dotpmgit}/remotes/${remote})
+		ref=${1#*:}
+	else
+		remote=""
+		rdotpmgit=${dotpmgit}
+		ref="$1"
+	fi
+	string=$ref
 	if [ "${string:0:4}" = "HEAD" ]
 	then
-		head_hash=$(cat ${dotpmgit}/HEAD)
+		head_hash=$(cat ${rdotpmgit}/HEAD)
 		if [ "${string:4}" = "" ]
 		then
 			echo ${head_hash}
@@ -210,14 +221,14 @@ function pmgit_tell_me_the_commit_hash
 			echo -1
 		fi
 	else
-		if [ -e ${dotpmgit}/branches/${string} ]
+		if [ -e ${rdotpmgit}/branches/${string} ]
 		then
-			cat ${dotpmgit}/branches/${string}
-		elif [ -e ${dotpmgit}/tags/${string} ]
+			cat ${rdotpmgit}/branches/${string}
+		elif [ -e ${rdotpmgit}/tags/${string} ]
 		then
-			cat ${dotpmgit}/tags/${string}
+			cat ${rdotpmgit}/tags/${string}
 		else
-			hash=$(find ${dotpmgit}/objects/commits/ -name "${string}*" | awk '{print $1}')
+			hash=$(find ${rdotpmgit}/objects/commits/ -name "${string}*" | awk '{print $1}')
 			echo $(basename $hash)
 		fi
 	fi
@@ -232,6 +243,16 @@ function pmgit_tell_me_the_commit_hash
 #   b. "cp filehash filename"
 function pmgit_expand_to_dir
 {
+	if [[ "$1" =~ ":" ]]
+	then
+		remote=${1%:*}
+		dotpm=$(head ${dotpmgit}/remotes/${remote})
+		ref=${1#*:}
+	else
+		remote=""
+		dotpm=${dotpmgit}
+		ref="$1"
+	fi
 	commit_hash=$(pmgit_tell_me_the_commit_hash $1)
 	if [ "$commit_hash" = "" ]
 	then
@@ -240,12 +261,12 @@ function pmgit_expand_to_dir
 	fi
 	rm -rf ${dotpmgit}/junk/tree/$2
 	mkdir -p ${dotpmgit}/junk/tree/$2
-	tree_hash=$(grep tree ${dotpmgit}/objects/commits/${commit_hash} | awk '{print $2}')
+	tree_hash=$(grep tree ${dotpm}/objects/commits/${commit_hash} | awk '{print $2}')
 	while read file hash
 	do
 		mkdir -p $(dirname ${dotpmgit}/junk/tree/$2/${file})
-		cp ${dotpmgit}/objects/blobs/${hash} ${dotpmgit}/junk/tree/$2/${file}
-	done < ${dotpmgit}/objects/trees/${tree_hash}
+		cp ${dotpm}/objects/blobs/${hash} ${dotpmgit}/junk/tree/$2/${file}
+	done < ${dotpm}/objects/trees/${tree_hash}
 	echo ${dotpmgit}/junk/tree/$2
 }
 
@@ -597,6 +618,23 @@ function pmgit_cherrypick
 
 
 
+
+function pmgit_remote
+{
+	if [ "$1" == "" ]
+	then
+		ls ${dotpmgit}/remotes/
+	fi
+	if [ "$1" == "add" ]
+	then
+		path=$(cd $3; pwd)
+		echo "$path" > ${dotpmgit}/remotes/$2
+	fi
+}
+
+
+
+
 # main function
 function pmgit
 {
@@ -697,6 +735,9 @@ function pmgit
 			;;
 		cherrypick)
 			pmgit_cherrypick $@
+			;;
+		remote)
+			pmgit_remote $@
 			;;
 		*)
 			echo "Unknown command."
