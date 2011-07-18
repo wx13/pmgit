@@ -538,6 +538,18 @@ function pmgit_cherrypick
 		return;
 	fi
 
+	# is this a remote commit
+	if [[ "$1" =~ ":" ]]
+	then
+		remote=${1%:*}
+		dotpm=$(head ${dotpmgit}/remotes/${remote})
+		ref=${1#*:}
+	else
+		remote=""
+		dotpm=${dotpmgit}
+		ref="$1"
+	fi
+
 	# get the parent of the cherry
 	cherry_commit_hash=$(pmgit_tell_me_the_commit_hash $@)
 	parent_commit_hash=$(pmgit_find_parent_commit ${cherry_commit_hash})
