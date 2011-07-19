@@ -78,6 +78,20 @@ pmgit cherrypick reference
 Noticeably absent are merge and rebase, because these are both just 
 sequential applications of cherrypick.
 
+The commands diff and cherrypick allow for remote repositories. To add a 
+remote, enter
+
+	pmgit remote add <name> <path to .pmgit>
+
+To remove
+
+	rm .pmgit/remotes/<name>
+
+Then diff and cherrypick can be run like this
+
+	pmgit diff myremote:HEAD
+	pmgit diff 3be421a6 myremote:HEAD^^
+	pmgit cherrypick myremote:tag_1
 
 Repository structure
 ====================
