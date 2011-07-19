@@ -361,7 +361,7 @@ function pmgit_graph
 	# first get a list of all commits, in topological order
 	commits=()
 	i=0
-	for ref in ${dotpmgit}/HEAD ${dotpmgit}/branches/* ${dotpmgit}/tags/*
+	for ref in ${dotpmgit}/HEAD ${dotpmgit}/branches/* $(find ${dotpmgit}/tags/ -type f)
 	do
 		i=$((i+1))
 		commit_hash=$(cat $ref)
@@ -419,15 +419,10 @@ function pmgit_graph
 	done
 	n=$i
 	i=0
-	for ref in ${dotpmgit}/HEAD ${dotpmgit}/branches/* ${dotpmgit}/tags/*
+	for ref in ${dotpmgit}/HEAD ${dotpmgit}/branches/* $(find ${dotpmgit}/tags/ -type f)
 	do
 		i=$((i+1))
-		rn=$(basename $ref)
-		if [ "$rn" != "*" ]
-		then
-			echo $i = $(basename $ref)
-		fi
-		#echo "${commits[i]}"
+		echo $i = $(basename $ref)
 		j=0
 		for commit in ${allcommits}
 		do
