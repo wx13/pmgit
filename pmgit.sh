@@ -553,7 +553,7 @@ function pmgit_cherrypick
 
 	# get the parent of the cherry
 	cherry_commit_hash=$(pmgit_tell_me_the_commit_hash $1)
-	parent_commit_hash=$(pmgit_find_parent_commit ${cherry_commit_hash} $rdotpmgit)
+	parent_commit_hash=$(pmgit_find_parent_commit ${cherry_commit_hash} 1 $rdotpmgit)
 
 	# expand all three commits, so we can diff & merge
 	head_dir=$(pmgit_expand_to_dir HEAD tree1)
@@ -622,11 +622,26 @@ function pmgit_cherrypick
 	then
 		echo "There were conflicts. Fix them and then commit the changes."
 	else
-		echo "No conflicts.  Don't forget to commit the changes."
+		echo "No conflicts.  Don't forget to add & commit the changes."
 	fi
 
-	echo "Message hash is:"
-	grep "message" ${rdotpmgit}/objects/commits/${cherry_commit_hash} | awk '{print $2}'
+	# tell user which files to add/rm
+	echo "To add:"
+	if [ "$del_files" != "" ]
+	then
+		df=${del_files//${parent_dir}//}
+		echo "  pmgit rm ${df#//}"
+	fi
+	if [ "${new_files}${modfiles}" != "" ]
+	then
+		af="${new_files//${cherry_dir}//} ${mod_files//${parent_dir}//}"
+		echo "  pmgit add ${af#//}"
+	fi
+
+	echo "Message is:"
+	msghash=$(grep "message" ${rdotpmgit}/objects/commits/${cherry_commit_hash} | awk '{print $2}')
+	path=$rdotpmgit
+	cat ${rdotpmgit}/objects/messages/${msghash}
 }
 
 
