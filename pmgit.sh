@@ -573,13 +573,13 @@ function pmgit_cherrypick
 	new_files=$(diff -qr ${parent_dir} ${cherry_dir} | grep "Only in ${cherry_dir}" | awk '{sub(":","",$3); print $3 "/" $4}')
 	for file in ${new_files}
 	do
-		filename=${file#${cherry_dir}}
+		filename=${file#${cherry_dir}/}
 		if [ -e ${workdir}/$filename ]
 		then
-			merge -q${workdir}/$filename ${workdir}/$filename ${file}
+			merge -q ${workdir}/$filename ${workdir}/$filename ${file}
 			conflicts=$((conflicts+$?))
 		else
-			cd ${parent_dir}
+			cd ${cherry_dir}
 			cp --parents ${filename} ${workdir}/
 			cd - &> /dev/null
 		fi
@@ -588,7 +588,7 @@ function pmgit_cherrypick
 	del_files=$(diff -qr ${parent_dir} ${cherry_dir} | grep "Only in ${parent_dir}" | awk '{sub(":","",$3); print $3 "/" $4}')
 	for file in ${del_files}
 	do
-		filename=${file#${parent_dir}}
+		filename=${file#${parent_dir}/}
 		if [ -e ${workdir}/$filename ]
 		then
 			ans=$(diff -q ${workdir}/${filename} ${parent_dir}/${filename} | wc -l)
