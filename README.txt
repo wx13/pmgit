@@ -55,7 +55,7 @@ pmgit log
 	Same as git.
 
 pmgit checkout [reference]
-	Pretty much same as git.
+	Pretty much same as git, except does not reset the index.
 
 pmgit reset-index
 	same as "git reset --mixed HEAD"
