@@ -78,6 +78,15 @@ pmgit cherrypick reference
 Noticeably absent are merge and rebase, because these are both just 
 sequential applications of cherrypick.
 
+Also absent is the clone command, which can be replaced with 'cp' and 
+'pmgit checkout'.  For example to clone repo1 to repo2:
+
+	mkidr repo2
+	cp -rl repo1/.pmgit repo2/.pmgit
+	cd repo2
+	pmgit checkout master
+	pmgit reset-index
+
 The commands diff and cherrypick allow for remote repositories. To add a 
 remote, enter
 
