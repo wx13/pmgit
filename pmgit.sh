@@ -47,7 +47,7 @@ function pmgit_find_base
 	if [ -z "$@" ]
 	then
 		echo "/.pmgit"
-		exit
+		return
 	fi
 	if [ -d ${1}/.pmgit ]
 	then
@@ -142,7 +142,7 @@ function pmgit_add_to_index
 function pmgit_remove_from_index
 {
 	path=$(pwd)/$1
-	file=$(basename $1)
+	file=$(basename -- $1)
 	repo=${dotpmgit%.pmgit}
 	rpath=${path#${repo}}
 	cd $repo
@@ -158,13 +158,13 @@ function pmgit_add_to_index_interactive
 	if [ ! -e ${dotpmgit}/index/$rpath ]
 	then
 		echo "Can't 'add -p' an untracked file."
-		exit;
+		return;
 	fi
 	d=$(diff -q $rpath ${dotpmgit}/index/$rpath)
 	if [ "$d" = "" ]
 	then
 		echo "No changes."
-		exit
+		return
 	fi
 	diff -u ${dotpmgit}/index/$rpath $rpath > ${dotpmgit}/junk/patch.txt
 	editdiff ${dotpmgit}/junk/patch.txt
@@ -224,7 +224,7 @@ function pmgit_tell_me_the_commit_hash
 			nc=${string:5}
 			echo $(pmgit_find_parent_commit ${head_hash} $nc $rdotpmgit)
 		else
-			echo -1
+			return
 		fi
 	else
 		if [ -e ${rdotpmgit}/branches/${string} ]
@@ -235,7 +235,12 @@ function pmgit_tell_me_the_commit_hash
 			cat ${rdotpmgit}/tags/${string}
 		else
 			hash=$(find ${rdotpmgit}/objects/commits/ -name "${string}*" | awk '{print $1}')
-			echo $(basename $hash)
+			if [[ "$hash" =~ [0-9a-f]{40} ]]
+			then
+				echo $(basename $hash)
+			else
+				return
+			fi
 		fi
 	fi
 }
@@ -301,6 +306,11 @@ function pmgit_diff
 	fi
 	cwd=$(pwd)
 	cwd=${cwd//\//\\\/}
+	if [ "$dir1" = "" -o "$dir2" = "" ]
+	then
+		echo "Bad reference."
+		return
+	fi
 	diff -ur ${exclude} $dir1 $dir2 \
 		| sed "s/^@@.*@@/$BLUE&$NORMAL/g" \
 		| sed "s/^\+[^+].*/$GREEN&$NORMAL/g" \
@@ -458,8 +468,18 @@ function pmgit_checkout
 	fi
 	# now do the checkout
 	dir1=$(pmgit_expand_to_dir $1 tree1)
+	if [ "$dir1" = "" ]
+	then
+		echo "Bad reference."
+		return
+	fi
 	rsync -a ${dir1}/ ${dotpmgit%.pmgit}/
 	new_head=$(pmgit_tell_me_the_commit_hash $1)
+	if [ "$new_head" = "" ]
+	then
+		echo "Bad reference."
+		return
+	fi
 	echo ${new_head} > ${dotpmgit}/HEAD
 	if [ -f ${dotpmgit}/branches/$1 ]
 	then
@@ -553,7 +573,17 @@ function pmgit_cherrypick
 
 	# get the parent of the cherry
 	cherry_commit_hash=$(pmgit_tell_me_the_commit_hash $1)
+	if [[ ! "$cherry_commit_hash" =~ [0-9a-f]{40} ]]
+	then
+		echo "Bad reference."
+		return
+	fi
 	parent_commit_hash=$(pmgit_find_parent_commit ${cherry_commit_hash} 1 $rdotpmgit)
+	if [[ ! "$parent_commit_hash" =~ [0-9a-f]{40} ]]
+	then
+		echo "Cherry commit has no parent. Aborting."
+		return
+	fi
 
 	# expand all three commits, so we can diff & merge
 	head_dir=$(pmgit_expand_to_dir HEAD tree1)
@@ -652,12 +682,15 @@ function pmgit_remote
 	if [ "$1" == "" ]
 	then
 		ls ${dotpmgit}/remotes/
+		return
 	fi
 	if [ "$1" == "add" ]
 	then
 		path=$(cd $3; pwd)
 		echo "$path" > ${dotpmgit}/remotes/$2
+		return
 	fi
+	echo "Unknown option to remote."
 }
 
 
@@ -681,7 +714,7 @@ function pmgit
 	if [ ! -d ${dotpmgit} ]
 	then
 		echo "Error: not a pmgit repository!"
-		exit
+		return
 	fi
 	export dotpmgit
 
@@ -692,12 +725,22 @@ function pmgit
 				shift
 				for file in $@
 				do
-					pmgit_add_to_index_interactive $file
+					if [ -f $file ]
+					then
+						pmgit_add_to_index_interactive $file
+					else
+						echo "File $file does not exist or is not a file. Skipping."
+					fi
 				done
 			else
 				for file in $@
 				do
-					pmgit_add_to_index $file
+					if [ -e $file ]
+					then
+						pmgit_add_to_index $file
+					else
+						echo "$file does not exist."
+					fi
 				done
 			fi
 			;;
