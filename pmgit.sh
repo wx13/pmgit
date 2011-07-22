@@ -390,8 +390,7 @@ function pmgit_graph
 		done | \
  		awk '{
 				wl = 40;
-				split($0,c);
-				b[NR]=length(c);
+				b[NR] = split($0,c);
 				++n;
 				for(i=0;i<=b[NR];++i)
 					a[NR,i] = c[i];
