@@ -270,15 +270,19 @@ function pmgit_expand_to_dir
 		echo ""
 		return
 	fi
-	rm -rf ${dotpmgit}/junk/tree/$2
-	mkdir -p ${dotpmgit}/junk/tree/$2
 	tree_hash=$(grep tree ${dotpm}/objects/commits/${commit_hash} | awk '{print $2}')
+	if [ -e ${dotpmgit}/junk/tree/${tree_hash} ]
+	then
+		echo ${dotpmgit}/junk/tree/${tree_hash}
+		return
+	fi
+	mkdir -p ${dotpmgit}/junk/tree/${tree_hash}
 	while read file hash
 	do
-		mkdir -p $(dirname ${dotpmgit}/junk/tree/$2/${file})
-		cp ${dotpm}/objects/blobs/${hash} ${dotpmgit}/junk/tree/$2/${file}
+		mkdir -p $(dirname ${dotpmgit}/junk/tree/${tree_hash}/${file})
+		cp ${dotpm}/objects/blobs/${hash} ${dotpmgit}/junk/tree/${tree_hash}/${file}
 	done < ${dotpm}/objects/trees/${tree_hash}
-	echo ${dotpmgit}/junk/tree/$2
+	echo ${dotpmgit}/junk/tree/${tree_hash}
 }
 
 
@@ -290,7 +294,7 @@ function pmgit_diff
 	exclude="-x .pmgit"
 	if [ "$1" = "--cached" ]
 	then
-		dir1=$(pmgit_expand_to_dir HEAD tree1)
+		dir1=$(pmgit_expand_to_dir HEAD)
 		dir2=${dotpmgit}/index/
 	elif [ "$#" = "0" ]
 	then
@@ -299,10 +303,10 @@ function pmgit_diff
 	elif [ "$#" = "1" ]
 	then
 		dir1=${dotpmgit%.pmgit}
-		dir2=$(pmgit_expand_to_dir $1 tree2)
+		dir2=$(pmgit_expand_to_dir $1)
 	else
-		dir1=$(pmgit_expand_to_dir $1 tree1)
-		dir2=$(pmgit_expand_to_dir $2 tree2)
+		dir1=$(pmgit_expand_to_dir $1)
+		dir2=$(pmgit_expand_to_dir $2)
 	fi
 	cwd=$(pwd)
 	cwd=${cwd//\//\\\/}
@@ -326,7 +330,7 @@ function pmgit_status
 {
 	repo=${dotpmgit%.pmgit}
 	cd $repo
-	dir1=$(pmgit_expand_to_dir HEAD tree1)
+	dir1=$(pmgit_expand_to_dir HEAD)
 	if [ ! "$dir1" = "" ]
 	then
 		echo "indexed, but not commited:"
@@ -466,7 +470,7 @@ function pmgit_checkout
 		read ans
 	fi
 	# now do the checkout
-	dir1=$(pmgit_expand_to_dir $1 tree1)
+	dir1=$(pmgit_expand_to_dir $1)
 	if [ "$dir1" = "" ]
 	then
 		echo "Bad reference."
@@ -489,7 +493,7 @@ function pmgit_checkout
 
 function pmgit_reset_index
 {
-	dir1=$(pmgit_expand_to_dir HEAD tree1)
+	dir1=$(pmgit_expand_to_dir HEAD)
 	rm -rf ${dotpmgit}/index/
 	mkdir ${dotpmgit}/index
 	rsync -a ${dir1}/ ${dotpmgit}/index/
@@ -586,9 +590,9 @@ function pmgit_cherrypick
 	fi
 
 	# expand all three commits, so we can diff & merge
-	head_dir=$(pmgit_expand_to_dir HEAD tree1)
-	cherry_dir=$(pmgit_expand_to_dir ${remote}${cherry_commit_hash} tree2)
-	parent_dir=$(pmgit_expand_to_dir ${remote}${parent_commit_hash} tree3)
+	head_dir=$(pmgit_expand_to_dir HEAD)
+	cherry_dir=$(pmgit_expand_to_dir ${remote}${cherry_commit_hash})
+	parent_dir=$(pmgit_expand_to_dir ${remote}${parent_commit_hash})
 
 	# check if index clean
 	a1=$(diff -qr ${dotpmgit}/index ${head_dir} | grep "Only in" | wc -l)
