@@ -296,17 +296,25 @@ function pmgit_diff
 	then
 		dir1=$(pmgit_expand_to_dir HEAD)
 		dir2=${dotpmgit}/index/
+		n1="HEAD"
+		n2="index"
 	elif [ "$#" = "0" ]
 	then
 		dir1=${dotpmgit}/index/
 		dir2=${dotpmgit%.pmgit}
+		n1="index"
+		n2="working copy"
 	elif [ "$#" = "1" ]
 	then
 		dir1=${dotpmgit%.pmgit}
 		dir2=$(pmgit_expand_to_dir $1)
+		n1="working copy"
+		n2="$2"
 	else
 		dir1=$(pmgit_expand_to_dir $1)
 		dir2=$(pmgit_expand_to_dir $2)
+		n1="$1"
+		n2="$2"
 	fi
 	cwd=$(pwd)
 	cwd=${cwd//\//\\\/}
@@ -315,7 +323,13 @@ function pmgit_diff
 		echo "Bad reference."
 		return
 	fi
+	d1=${dir1//\//\\\/}
+	d2=${dir2//\//\\\/}
 	diff -ur ${exclude} $dir1 $dir2 \
+		| sed "s/^Only in ${d1}:/${RED}deleted:${NORMAL}/g" \
+		| sed "s/^Only in ${d2}:/${GREEN}new:${NORMAL}/g" \
+		| sed "s/${d1}/${n1}/" \
+		| sed "s/${d2}/${n2}/" \
 		| sed "s/^@@.*@@/$BLUE&$NORMAL/g" \
 		| sed "s/^\+[^+].*/$GREEN&$NORMAL/g" \
 		| sed "s/^\-[^-].*/$RED&$NORMAL/g" \
