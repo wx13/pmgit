@@ -563,6 +563,7 @@ function pmgit_cherrypick
 	then
 		remote=${1%:*}
 		rdotpmgit=$(head ${dotpmgit}/remotes/${remote})
+		remote="${1%:*}:"
 		ref=${1#*:}
 	else
 		remote=""
@@ -586,8 +587,8 @@ function pmgit_cherrypick
 
 	# expand all three commits, so we can diff & merge
 	head_dir=$(pmgit_expand_to_dir HEAD tree1)
-	cherry_dir=$(pmgit_expand_to_dir ${remote}:${cherry_commit_hash} tree2)
-	parent_dir=$(pmgit_expand_to_dir ${remote}:${parent_commit_hash} tree3)
+	cherry_dir=$(pmgit_expand_to_dir ${remote}${cherry_commit_hash} tree2)
+	parent_dir=$(pmgit_expand_to_dir ${remote}${parent_commit_hash} tree3)
 
 	# check if index clean
 	a1=$(diff -qr ${dotpmgit}/index ${head_dir} | grep "Only in" | wc -l)
