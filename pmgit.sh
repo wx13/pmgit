@@ -476,23 +476,12 @@ function pmgit_graph
 
 function pmgit_checkout
 {
-	# force dirty tree checkout
-	if [ "$1" == "-f" ]
-	then
-		force=1
-		shift
-	else
-		force=0
-	fi
 	# check for dirty working copy
 	status=$(pmgit_status | grep -e "    modified:" -e "    removed:" -e "    new:")
 	if [ ! "$status" = "" ]
 	then
-		if [ "$force" == "0" ]
-		then
-			echo "Warning: dirty tree. Hit any key to continue."
-			read ans
-		fi
+		echo "Warning: dirty tree. Hit any key to continue."
+		read ans
 	fi
 	# now do the checkout
 	dir1=$(pmgit_expand_to_dir $1)
@@ -723,47 +712,6 @@ function pmgit_remote
 }
 
 
-function pmgit_clone_bare
-{
-	src=$1
-	destp=$2
-	if [ -e $destp ]
-	then
-		echo "$destp already exists"
-		return
-	fi
-	if [ ! -d $src/.pmgit ]
-	then
-		echo "$src isn't a pmgit repo"
-		return
-	fi
-	cp -rl ${src}/.pmgit ${destp}
-}
-function pmgit_clone
-{
-	if [ "$1" == "--bare" ]
-	then
-		src=$2
-		dest=$3
-		pmgit_clone_bare $src $dest
-	else
-		src=$1
-		dest=$2
-		if [ -d $dest ]
-		then
-			echo "$dest already exists"
-			return
-		fi
-		mkdir $dest
-		pmgit_clone_bare $src ${dest}/.pmgit
-		cd $dest
-		pmgit checkout -f master
-		pmgit reset-index
-		cd - > /dev/null
-	fi
-}
-
-
 
 
 # main function
@@ -776,10 +724,6 @@ function pmgit
 	# if init, don't need to check for repo
 	if [ "$command" = "init" ]; then
 		pmgit_init
-		return
-	fi
-	if [ "$command" = "clone" ]; then
-		pmgit_clone $@
 		return
 	fi
 
